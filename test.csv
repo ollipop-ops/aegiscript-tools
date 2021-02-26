@@ -2,3 +2,6 @@ ccr,0:01,This is the first line
 cdr,0:06,This is the second line
 ccr,0:30,This is the third line
 LMAO,1:27,This is the fourth line
+ccr,72:50,This is the fifth line and it's a weird format
+ccr,1:42:55,This is the sixth line and it's an hour in
+ccr,26:00:00,This is the seventh line and...

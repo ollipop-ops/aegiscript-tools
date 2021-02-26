@@ -8,6 +8,8 @@ import re
 import csv
 import os
 import json
+import time
+import sys
 
 
 #tag: (Pos[0], Bord[1], Name[2], Fontname[3], Fontsize[4], PrimaryColour[5], SecondaryColour[6], OutlineColour[7], BackColour[8], Bold[9], Italic[10], Underline[11],
@@ -46,9 +48,24 @@ def parseCsvRow(row):
     bord = style_data[1]
     style_name = style_data[2]
 
-    timestamp = row[1] #TODO implement this?
+    try:
+        #TODO Figure out a more elegant way to do this (accounting for )
+        ts_format = row[1].count(":")
+        if(ts_format == 1):
+            csv_time = time.strptime(row[1], "%M:%S")
+            #print(f"CSV time: {csv_time}")
+        else:
+            csv_time = time.strptime(row[1], "%H:%M:%S")
+            #print(f"CSV time: {csv_time}")
+
+        timestamp = time.strftime("%H:%M:%S.00", csv_time) #CSV files don't have sub-second precision, so don't bother with it
+        #Yeah it's treating this like a date-time instead of an elapsed time. If you have timestamps in excess of 24 hours it might break...
+        #So don't make clips in excess of 24 hours please 草
+    except:
+        print("Couldn't parse timestamp at row: " + ','.join(row))
+        timestamp = "0:00:00.00" #Default to 0 if we can't parse it
     dialogue = row[2]
-    return f"Dialogue: 1,0:00:00.00,0:00:00.00,{style_name},,0,0,0,,{{\\bord{bord}\pos({pos})\\3c&H000000&\}}{dialogue}"
+    return f"Dialogue: 1,{timestamp},{timestamp},{style_name},,0,0,0,,{{\\bord{bord}\pos({pos})\\3c&H000000&\}}{dialogue}"
 
 
 def csvParser(fname):
