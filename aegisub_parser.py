@@ -18,9 +18,16 @@ STYLES = {}
 
 #TODO could also make this configurable!
 DELIM = ","
-TEMPLATE_FILE = "./aegisub_template.txt"
 STYLES_FILE = "./styles.json"
 COMMENT_TAG = "comm"
+
+AEGISCRIPT_TEMPLATE = '''[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+{styles}
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+{events}'''
 
 def generateStyleLine(style):
     """Creates an Aegisub Style line from a styles dictionary value
@@ -85,9 +92,7 @@ def csvParser(fname):
     """
     dialogues = []
     styles_section = map(generateStyleLine, STYLES.values())
-    #TODO change the template to a class in future?
-    with open (TEMPLATE_FILE, mode = 'r', encoding='UTF-8') as tempfile:
-        template = tempfile.read()
+    template = AEGISCRIPT_TEMPLATE #TODO turn this into a class?
 
     with open(fname + ".csv", encoding = 'UTF-8') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=DELIM)
