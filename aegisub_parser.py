@@ -20,7 +20,7 @@ STYLES = {}
 DELIM = ","
 TEMPLATE_FILE = "./aegisub_template.txt"
 STYLES_FILE = "./styles.json"
-
+COMMENT_TAG = "comm"
 
 def generateStyleLine(style):
     """Creates an Aegisub Style line from a styles dictionary value
@@ -43,6 +43,11 @@ def parseCsvRow(row):
     Returns:
         string: A Dialogue line in the .ass dialogue format
     """
+    #Check for comment tag, since comment formatting is a bit different
+    comment_row = False
+    if(row[0] == COMMENT_TAG):
+        comment_row = True
+
     style_data = STYLES.get(row[0], STYLES.get("default"))
     pos = style_data[0]
     bord = style_data[1]
@@ -65,7 +70,11 @@ def parseCsvRow(row):
         print("Couldn't parse timestamp at row: " + ','.join(row))
         timestamp = "0:00:00.00" #Default to 0 if we can't parse it
     dialogue = row[2]
-    return f"Dialogue: 1,{timestamp},{timestamp},{style_name},,0,0,0,,{{\\bord{bord}\pos({pos})\\3c&H000000&\}}{dialogue}"
+
+    if(not comment_row):
+        return f"Dialogue: 1,{timestamp},{timestamp},{style_name},,0,0,0,,{{\\bord{bord}\pos({pos})\\3c&H000000&\}}{dialogue}"
+    else:
+        return f"Comment: 1,{timestamp},{timestamp},{style_name},,0,0,0,,{dialogue}"
 
 
 def csvParser(fname):
