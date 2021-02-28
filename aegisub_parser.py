@@ -9,7 +9,7 @@ import csv
 import os
 import json
 import time
-import sys
+import argparse
 
 
 #tag: (Pos[0], Bord[1], Name[2], Fontname[3], Fontsize[4], PrimaryColour[5], SecondaryColour[6], OutlineColour[7], BackColour[8], Bold[9], Italic[10], Underline[11],
@@ -18,7 +18,6 @@ STYLES = {}
 
 #TODO could also make this configurable!
 DELIM = ","
-STYLES_FILE = "./styles.json"
 COMMENT_TAG = "comm"
 
 AEGISCRIPT_TEMPLATE = '''[V4+ Styles]
@@ -84,26 +83,30 @@ def parseCsvRow(row):
         return f"Comment: 1,{timestamp},{timestamp},{style_name},,0,0,0,,{dialogue}"
 
 
-def csvParser(fname):
+def csvParser(fname, out_fn = ""):
     """Accepts a .csv file in the format of tag, timestamp, dialogue and writes the dialogue out to a complete Aegisub file
 
     Args:
         fname (string): the path to the csv file to be loaded, WITHOUT the extension
+        [out_fn] (string): the path to the output file to write to
     """
+    if(not out_fn):
+        out_fn = f"{fname}_out.ass"
+
     dialogues = []
     styles_section = map(generateStyleLine, STYLES.values())
     template = AEGISCRIPT_TEMPLATE #TODO turn this into a class?
 
-    with open(fname + ".csv", encoding = 'UTF-8') as csv_file:
+    with open(f"{fname}.csv", encoding = 'UTF-8') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=DELIM)
         dialogues = list(map(parseCsvRow, csv_reader))
 
     template = template.replace("{styles}", '\n'.join(styles_section))
     template = template.replace("{events}", '\n'.join(dialogues))
 
-    with open(fname + "_out.ass", mode = "w", encoding = 'UTF-8') as out_file:
+    with open(out_fn, mode = "w", encoding = 'UTF-8') as out_file:
         out_file.write(template)
-    print("Successfully wrote Aegisfile to " + fname + "_out.ass")
+    print(f"Successfully wrote Aegisub file to {out_fn}")
 
 
 def generateLayer2(dialogue):
@@ -122,14 +125,18 @@ def generateLayer2(dialogue):
     return dialogue + '\n' + layer2 + '\n'
 
 
-def postProcessParser(fname):
+def postProcessParser(fname, out_fn=""):
     """Accepts a .ass file with timestamps and adds a second text layer to each dialogue.
         This should only be used AFTER the timestampers have added their timestamps
 
     Args:
         fname (string): Full path to the .ass file WITHOUT the extension
+        [out_fn] (string): Path to the output file to write to
     """
-    with open (fname + ".ass", mode = 'r', encoding = 'UTF-8') as infile:
+    if(not out_fn):
+        out_fn = f"{fname}_processed.ass"
+
+    with open (f"{fname}.ass", mode = 'r', encoding = 'UTF-8') as infile:
         processed_ass = infile.readlines()
     
     event_index = processed_ass.index("[Events]\n") + 2
@@ -140,31 +147,49 @@ def postProcessParser(fname):
         if event.isspace():
             break
 
-    with open (fname + "_processed.ass", mode = 'w', encoding = 'UTF-8') as outfile:
+    with open (out_fn, mode = 'w', encoding = 'UTF-8') as outfile:
         outfile.writelines(processed_ass)
 
-    print("Successfully wrote Aegisfile to " + fname + "_processed.ass")
+    print(f"Successfully wrote Aegisfile to {out_fn}")
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.withdraw()
+def main():
+    input_fp = ""
+    input_ext = ""
 
-    # Opens a dialog to ask for the file name using a directory search window
-    # Change the . to the absolute/relative path
-    # Or just delete the whole "initialdir='.'"
-    # To open the file dialog in the root directory
-    full_path = filedialog.askopenfilename(initialdir=".")
-    file_path, extension = os.path.splitext(full_path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_file", help="Input .csv file or .ass file", default="", nargs='?')
+    parser.add_argument("output_file", help="Output .ass file", default="", nargs='?')
+    parser.add_argument("--style", "-s", help="Path to styles json file to use for parsing", default="./styles.json")
+    args = parser.parse_intermixed_args()
 
-    with open(STYLES_FILE, mode = 'r', encoding = 'UTF-8') as f:
+    #If no input file is provided, use the file open dialogue to choose it
+    if(not args.input_file):
+        root = tk.Tk()
+        root.withdraw()
+
+        # Opens a dialog to ask for the file name using a directory search window
+        # Change the . to the absolute/relative path
+        # Or just delete the whole "initialdir='.'"
+        # To open the file dialog in the root directory
+        input_fp, input_ext = os.path.splitext(filedialog.askopenfilename(initialdir="."))
+    else:
+        input_fp, input_ext = os.path.splitext(args.input_file)
+
+
+    with open(args.style, mode = 'r', encoding = 'UTF-8') as f:
+        global STYLES
         STYLES = json.load(f)
 
     #If the file is a .csv, we run the preprocessing step to turn it into a .ass file
-    if(extension == '.csv'):
-        csvParser(file_path)
+    if(input_ext == '.csv'):
+        csvParser(input_fp, args.output_file)
     #If the file is a .ass file, we run postprocessing to add extra text layers
-    elif(extension == '.ass'):
-        postProcessParser(file_path)
+    elif(input_ext == '.ass'):
+        postProcessParser(input_fp, args.output_file)
     else:
-        print("File format not recognized!")
+        print(f"Input file format {input_ext} is not recognized!")
+
+
+if __name__ == "__main__":
+    main()
